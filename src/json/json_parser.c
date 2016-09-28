@@ -79,6 +79,14 @@ int get_data_type(int next_character) {
 	return -1;
 }
 
+/******************************************************************************
+ * SKIP WHITESPACE
+ * @param json_file
+ * @param line_number
+ * @return	0	-	the file pointer was moved past all whitespace
+ * 			1	-	there was only whitespace before the end of the file
+ * @description move the file pointer past any whitespace characters
+ *****************************************************************************/
 int skip_whitespace(FILE* json_file, int *line_number) {
 	// get the first character without removing it from the stream
 	int current_character = peek_next_char(json_file);
@@ -103,9 +111,20 @@ int skip_whitespace(FILE* json_file, int *line_number) {
 	return 0;
 }
 
+/******************************************************************************
+ * EXPECT CHARACTER
+ * @param current_character
+ * @param expected_character
+ * @param line_number
+ * @return 	0	-	character is what was expected
+ * 			1	-	character was unexpected
+ * @description check to see if a character is what you expect
+ *****************************************************************************/
 int expect_character(int current_character, int expected_character, int line_number) {
+	// check if the two characters are equal
 	if (current_character != expected_character) {
-		fprintf(stderr, "Invalid character on line %d:\n\texpected: \"%c\"\n\tfound: \"%c\"\n",
+		// output an error message
+		fprintf(stderr, "Unexpected character on line %d:\n\texpected: \"%c\"\n\tfound: \"%c\"\n",
 				line_number, expected_character, current_character);
 		return 1;
 	}
