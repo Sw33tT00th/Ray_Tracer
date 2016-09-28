@@ -1,0 +1,7 @@
+[
+    {
+        "test1" : 1,
+        "test2" : "this is a string.",
+        "test3" : false
+    }
+]
