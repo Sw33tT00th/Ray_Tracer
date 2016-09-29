@@ -6,12 +6,15 @@
 
 int main(int argc, char *argv[]) {
 	Json_Element *root_element;
-	FILE* json_file = fopen("/Users/Sw33tT00th/Documents/Fall 2016/CS 430/Ray_Tracer/test_data/test_data.json", "r");
+	FILE* json_file = fopen(argv[3], "r");
 	
 	if (json_file == NULL) {
-		fprintf(stderr, "Failed to open json file\n\nClosing Program");
+		fprintf(stderr, "Failed to open json file\n\nClosing Program\n");
 		exit(1);
 	}
+	
+	// allocate 32 blocks of json element sized memory
+	root_element = malloc(sizeof(Json_Element) * 32);
 	
 	int error_check = 0;
 	error_check = parse_json(json_file, root_element);
@@ -20,6 +23,6 @@ int main(int argc, char *argv[]) {
 		fclose(json_file);
 	}
 	
-	printf("Program completed\n");
+	printf("\nProgram completed\n");
 	return 0;
 }

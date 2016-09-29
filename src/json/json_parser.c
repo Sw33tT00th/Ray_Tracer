@@ -15,6 +15,8 @@
  * 			1	-	json file was empty
  * 			2	-	file didn't start with an array bracket '['
  * 			3	-	initial array was empty
+ * 			4	-	file ended unexpectedly
+ * 			5	-	unexpected character
  * @description read json file into a structure
  *****************************************************************************/
 int parse_json(FILE* json_file, Json_Element *root_element) {
@@ -36,17 +38,70 @@ int parse_json(FILE* json_file, Json_Element *root_element) {
 		return 2;
 	}
 	
-	// remove the [
+	// remove the expected character
 	getc(json_file);
-	
+	// skip whitespace
+	skip_whitespace(json_file, &line_number);
 	// get the next character
-	current_character = peek_next_char(json_file);
+	current_character = getc(json_file);
+	// check for end of file
+	if (current_character == EOF) {
+		fprintf(stderr, "File ended unexpectedly\n\n");
+		return 4;
+	}
 	
+	// check for end of array
 	if (current_character == ']') {
 		fprintf(stderr, "JSON array was empty, no scene data found\n\n");
 		return 3;
 	}
 	
+	// check that the first element of the array is an object
+	if (expect_character(current_character, '{', line_number)) {
+		fprintf(stderr, "First element must be an object\n\n");
+		return 5;
+	}
+	
+	// set the key for the first element, return if it fails
+	if (read_string(json_file, &line_number, root_element->key)) {
+		return 5;
+	}
+	
+	
+	
+	// get the data type of the first element
+	int data_type = get_data_type(current_character);
+	// output an error message and return if the character is not a
+	// proper data type
+	if (data_type == -1) {
+		fprintf(stderr, "Unexpected character on line %d:\n\tfound: \"%c\"\n",
+				line_number, current_character);
+		return 5;
+	}
+	
+	// parse the data based on the type found
+	switch (data_type) {
+		case JSON_STRING:
+			break;
+		
+		case JSON_NUMBER:
+			break;
+		
+		case JSON_BOOLEAN:
+			break;
+		
+		case JSON_OBJECT:
+			break;
+		
+		case JSON_ARRAY:
+			break;
+		
+		default:
+			fprintf(stderr, "how did you get here?\n\n");
+			break;
+	}
+	
+	printf("got here\n");
 	
 	return 0;
 }
@@ -128,6 +183,43 @@ int expect_character(int current_character, int expected_character, int line_num
 				line_number, expected_character, current_character);
 		return 1;
 	}
+	return 0;
+}
+
+/******************************************************************************
+ * GET KEY
+ * @param json_file
+ * @param line_number
+ * @param key
+ * @return	0	-	everything went well and a key is now stored
+ * 			1	-	something went wrong with finding a key
+ * @description sets a key string for a json object
+ *****************************************************************************/
+int read_string(FILE* json_file, int *line_number, char *destination) {
+	int current_max = 32;
+	destination = malloc(sizeof(char) * current_max);
+	// skip any whitespace
+	skip_whitespace(json_file, line_number);
+	// peek the next character
+	int current_character = peek_next_char(json_file);
+	// check that the character is "
+	if (expect_character(current_character, '"', *line_number)) {
+		return 1;
+	}
+	// remove the "
+	getc(json_file);
+	int i = 0;
+	// append the characters into the string
+	while (peek_next_char(json_file) != '"') {
+		if (i == current_max) {
+			current_max *= 2;
+			realloc(destination, sizeof(char) * current_max);
+		}
+		destination[i] = (char)getc(json_file);
+		i++;
+	}
+	// remove the ending "
+	getc(json_file);
 	return 0;
 }
 
