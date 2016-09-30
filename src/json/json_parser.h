@@ -37,9 +37,11 @@ typedef struct _Json_Element {
 
 // FUNCTION SIGNATURES
 int parse_json(FILE* json_file, Json_Element *root_element);
+int parse_array(Json_Element *current_element, FILE* json_file, int *line_number);
+int parse_object(Json_Element *current_element, FILE* json_file, int *line_number);
 int get_data_type(int next_character);
 int skip_whitespace(FILE* json_file, int *line_number);
 int expect_character(int current_character, int expected_character, int line_number);
-int read_string(FILE* json_file, int *line_number, char *destination);
+char* read_string(FILE* json_file, int *line_number);
 
 #endif //RAY_TRACER_JSON_PARSER_H

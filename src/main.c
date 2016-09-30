@@ -13,16 +13,21 @@ int main(int argc, char *argv[]) {
 		exit(1);
 	}
 	
-	// allocate 32 blocks of json element sized memory
-	root_element = malloc(sizeof(Json_Element) * 32);
+	// allocate 128 blocks of json element sized memory
+	root_element = malloc(sizeof(Json_Element) * 1);
 	
 	int error_check = 0;
 	error_check = parse_json(json_file, root_element);
 	if (error_check) {
-		printf("Closing Program\n");
+		fprintf(stderr, "Closing Program\n");
 		fclose(json_file);
 	}
 	
-	printf("\nProgram completed\n");
+	Json_Element *current_element = root_element->data.data_element->data.data_element;
+	current_element++;
+	current_element++;
+	printf("Root element type: %d\n", current_element->data.data_bool);
+	
+	fprintf(stderr, "\nProgram completed\n");
 	return 0;
 }
