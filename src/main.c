@@ -23,10 +23,20 @@ int main(int argc, char *argv[]) {
 		fclose(json_file);
 	}
 	
-	Json_Element *current_element = root_element->data.data_element->data.data_element;
-	current_element++;
-	current_element++;
-	printf("Root element type: %d\n", current_element->data.data_bool);
+	/*Json_Element *current_element;
+	
+	current_element = root_element;
+	printf("Root Element Type: %d\n", current_element->type);
+	current_element = current_element->data.data_element;
+	printf("First element of array type: %d\n", current_element->type);
+	current_element = current_element->data.data_element;
+	printf("First element of object type: %d\n", current_element->type);
+	printf("\tKEY: %s\n\tVALUE: %f\n", current_element->key, current_element->data.data_number);
+	current_element = current_element + 1;
+	printf("Second element of object type: %d\n", current_element->type);
+	printf("\tKEY: %s\n\tVALUE: %s\n", current_element->key, current_element->data.data_string);
+	current_element = current_element + 1;
+	printf("Second element of object type: %d\n", current_element->type);*/
 	
 	fprintf(stderr, "\nProgram completed\n");
 	return 0;

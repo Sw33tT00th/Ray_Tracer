@@ -43,5 +43,7 @@ int get_data_type(int next_character);
 int skip_whitespace(FILE* json_file, int *line_number);
 int expect_character(int current_character, int expected_character, int line_number);
 char* read_string(FILE* json_file, int *line_number);
+int get_next_element(Json_Element *current_element, FILE* json_file, int *line_number, int current_character);
+void print_current_element(Json_Element *current_element);
 
 #endif //RAY_TRACER_JSON_PARSER_H

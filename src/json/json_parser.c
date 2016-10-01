@@ -23,7 +23,6 @@
 int parse_json(FILE* json_file, Json_Element *root_element) {
 	int line_number = 1;
 	int current_character;
-	char *temp;
 	
 	// skip whitespace, and if it finds the end of the file return 1
 	if (skip_whitespace(json_file, &line_number)) {
@@ -37,152 +36,8 @@ int parse_json(FILE* json_file, Json_Element *root_element) {
 	Json_Element *current_element = root_element;
 	
 	while (current_character != EOF) {
-		switch (current_character) {
-			case '[':
-				// HANDLE ARRAY
-				
-				// set the current element type to array
-				current_element->type = JSON_ARRAY;
-				
-				// allocate memory for the array
-				current_element->data.data_element = malloc(sizeof(Json_Element) * 128);
-				
-				// set the current element to the array itself
-				current_element = current_element->data.data_element;
-				
-				// parse the array
-				if (parse_array(current_element, json_file, &line_number)) {
-					return 6;
-				}
-				break;
-			
-			case '{':
-				// HANDLE OBJECT
-				
-				// set the current element type to object
-				current_element->type = JSON_OBJECT;
-				
-				// allocate memory for the object
-				current_element->data.data_element = malloc(sizeof(Json_Element) * 8);
-				
-				// set the current element to the object itself
-				current_element = current_element->data.data_element;
-				
-				// parse the object
-				if (parse_object(current_element, json_file, &line_number)) {
-					return 6;
-				}
-				break;
-			
-			case '"':
-				// PARSE KEY AND HANDLE GENERIC ELEMENT
-				
-				// read and store the key
-				current_element->key = read_string(json_file, &line_number);
-				if (strcmp(current_element->key, "\0") == 0) {
-					return 6;
-				}
-				
-				// remove whitespace
-				if (skip_whitespace(json_file, &line_number)) {
-					fprintf(stderr, "ERROR: File ended unexpectedly\n\n");
-					return 1;
-				}
-				
-				// check for a :
-				current_character = getc(json_file);
-				if (expect_character(current_character, ':', line_number)) {
-					return 5;
-				}
-				
-				// remove whitespace
-				if (skip_whitespace(json_file, &line_number)) {
-					fprintf(stderr, "ERROR: File ended unexpectedly\n\n");
-					return 1;
-				}
-				
-				current_character = peek_next_char(json_file);
-				current_element->type = get_data_type(current_character);
-				switch (current_element->type) {
-					case JSON_ARRAY:
-						// HANDLE ARRAY
-						
-						// set the current element type to array
-						current_element->type = JSON_ARRAY;
-						
-						// allocate memory for the array
-						current_element->data.data_element = malloc(sizeof(Json_Element) * 128);
-						
-						// set the current element to the array itself
-						current_element = current_element->data.data_element;
-						
-						// parse the array
-						if (parse_array(current_element, json_file, &line_number)) {
-							return 6;
-						}
-						break;
-					
-					case JSON_OBJECT:
-						// HANDLE OBJECT
-						
-						// set the current element type to object
-						current_element->type = JSON_OBJECT;
-						
-						// allocate memory for the object
-						current_element->data.data_element = malloc(sizeof(Json_Element) * 8);
-						
-						// set the current element to the object itself
-						current_element = current_element->data.data_element;
-						
-						// parse the object
-						if (parse_object(current_element, json_file, &line_number)) {
-							return 6;
-						}
-						break;
-					
-					case JSON_NUMBER:
-						// HANDLE NUMBER
-						fscanf(json_file, "%lf", &current_element->data.data_number);
-						break;
-					
-					case JSON_STRING:
-						// HANDLE STRING
-						
-						current_element->data.data_string = read_string(json_file, &line_number);
-						break;
-					
-					case JSON_BOOLEAN:
-						// HANDLE BOOLEAN
-						
-						temp = read_string(json_file, &line_number);
-						if (strcmp(temp, "true") == 0) {
-							current_element->data.data_bool = TRUE;
-						}
-						if (strcmp(temp, "false") == 0) {
-							current_element->data.data_bool = FALSE;
-						}
-						break;
-					
-					default:
-						fprintf(stderr, "ERROR: How did you get here?\n\n");
-						break;
-				}
-				// increment current element
-				current_element += 1;
-				break;
-				
-			case ',':
-				// remove the comma
-				getc(json_file);
-				break;
-			
-			default:
-				fprintf(stderr, "from parse_json\n");
-				fprintf(stderr,
-						"ERROR: Unexpected character at line %d\n\tExpected: '\"', '[', or '{'\n\tFound: %c\n\n",
-						line_number, current_character);
-				return 5;
-		}
+		get_next_element(current_element, json_file, &line_number, current_character);
+		current_element++;
 		// remove whitespace
 		// while the character is whitespace remove the next character and check
 		while (isspace(current_character)) {
@@ -212,7 +67,15 @@ int parse_json(FILE* json_file, Json_Element *root_element) {
  * @description parse an array
  */
 int parse_array(Json_Element *current_element, FILE* json_file, int *line_number) {
-	char *temp;
+	// set the current element type to array
+	current_element->type = JSON_ARRAY;
+	
+	// allocate memory for the array
+	current_element->data.data_element = malloc(sizeof(Json_Element) * 128);
+	
+	// set the current element to the array itself
+	current_element = current_element->data.data_element;
+	
 	// remove whitespace
 	if (skip_whitespace(json_file, line_number)) {
 		fprintf(stderr, "ERROR: File ended unexpectedly\n\n");
@@ -220,152 +83,8 @@ int parse_array(Json_Element *current_element, FILE* json_file, int *line_number
 	}
 	int current_character = getc(json_file);
 	while (current_character != ']') {
-		switch (current_character) {
-			case '[':
-				// HANDLE ARRAY
-				
-				// set the current element type to array
-				current_element->type = JSON_ARRAY;
-				
-				// allocate memory for the array
-				current_element->data.data_element = malloc(sizeof(Json_Element) * 128);
-				
-				// set the current element to the array itself
-				current_element = current_element->data.data_element;
-				
-				// parse the array
-				if (parse_array(current_element, json_file, line_number)) {
-					return 6;
-				}
-				break;
-			
-			case '{':
-				// HANDLE OBJECT
-				
-				// set the current element type to object
-				current_element->type = JSON_OBJECT;
-				
-				// allocate memory for the object
-				current_element->data.data_element = malloc(sizeof(Json_Element) * 8);
-				
-				// set the current element to the object itself
-				current_element = current_element->data.data_element;
-				
-				// parse the object
-				if (parse_object(current_element, json_file, line_number)) {
-					return 6;
-				}
-				break;
-			
-			case '"':
-				// PARSE KEY AND HANDLE GENERIC ELEMENT
-				
-				// read and store the key
-				current_element->key = read_string(json_file, line_number);
-				if (strcmp(current_element->key, "\0") == 0) {
-					return 6;
-				}
-				
-				// remove whitespace
-				if (skip_whitespace(json_file, line_number)) {
-					fprintf(stderr, "ERROR: File ended unexpectedly\n\n");
-					return 1;
-				}
-				
-				// check for a :
-				current_character = getc(json_file);
-				if (expect_character(current_character, ':', *line_number)) {
-					return 5;
-				}
-				
-				// remove whitespace
-				if (skip_whitespace(json_file, line_number)) {
-					fprintf(stderr, "ERROR: File ended unexpectedly\n\n");
-					return 1;
-				}
-				
-				current_character = peek_next_char(json_file);
-				current_element->type = get_data_type(current_character);
-				switch (current_element->type) {
-					case JSON_ARRAY:
-						// HANDLE ARRAY
-						
-						// set the current element type to array
-						current_element->type = JSON_ARRAY;
-						
-						// allocate memory for the array
-						current_element->data.data_element = malloc(sizeof(Json_Element) * 128);
-						
-						// set the current element to the array itself
-						current_element = current_element->data.data_element;
-						
-						// parse the array
-						if (parse_array(current_element, json_file, line_number)) {
-							return 6;
-						}
-						break;
-					
-					case JSON_OBJECT:
-						// HANDLE OBJECT
-						
-						// set the current element type to object
-						current_element->type = JSON_OBJECT;
-						
-						// allocate memory for the object
-						current_element->data.data_element = malloc(sizeof(Json_Element) * 8);
-						
-						// set the current element to the object itself
-						current_element = current_element->data.data_element;
-						
-						// parse the object
-						if (parse_object(current_element, json_file, line_number)) {
-							return 6;
-						}
-						break;
-					
-					case JSON_NUMBER:
-						// HANDLE NUMBER
-						fscanf(json_file, "%lf", &current_element->data.data_number);
-						break;
-					
-					case JSON_STRING:
-						// HANDLE STRING
-						
-						current_element->data.data_string = read_string(json_file, line_number);
-						break;
-					
-					case JSON_BOOLEAN:
-						// HANDLE BOOLEAN
-						
-						temp = read_string(json_file, line_number);
-						if (strcmp(temp, "true") == 0) {
-							current_element->data.data_bool = TRUE;
-						}
-						if (strcmp(temp, "false") == 0) {
-							current_element->data.data_bool = FALSE;
-						}
-						break;
-					
-					default:
-						fprintf(stderr, "ERROR: How did you get here?\n\n");
-						return 4;
-				}
-				// increment current element
-				current_element += 1;
-				break;
-			
-			case ',':
-				// remove the comma
-				getc(json_file);
-				break;
-			
-			default:
-				fprintf(stderr, "from parse_array\n");
-				fprintf(stderr,
-						"ERROR: Unexpected character at line %d\n\tExpected: '\"', '[', or '{'\n\tFound: %c\n\n",
-						*line_number, current_character);
-				return 2;
-		}
+		get_next_element(current_element, json_file, line_number, current_character);
+		current_element++;
 		// remove whitespace
 		if (skip_whitespace(json_file, line_number)) {
 			fprintf(stderr, "from parse_array\n");
@@ -387,7 +106,15 @@ int parse_array(Json_Element *current_element, FILE* json_file, int *line_number
  * @description parse an object
  */
 int parse_object(Json_Element *current_element, FILE* json_file, int *line_number) {
-	char* temp;
+	// set the current element type to object
+	current_element->type = JSON_OBJECT;
+	
+	// allocate memory for the object
+	current_element->data.data_element = malloc(sizeof(Json_Element) * 8);
+	
+	// set the current element to the object itself
+	current_element = current_element->data.data_element;
+	
 	// remove whitespace
 	if (skip_whitespace(json_file, line_number)) {
 		fprintf(stderr, "ERROR: File ended unexpectedly\n\n");
@@ -396,177 +123,9 @@ int parse_object(Json_Element *current_element, FILE* json_file, int *line_numbe
 	
 	int current_character = getc(json_file);
 	while (current_character != '}') {
-		switch (current_character) {
-			case '[':
-				// HANDLE ARRAY
-				
-				// set the current element type to array
-				current_element->type = JSON_ARRAY;
-				
-				// allocate memory for the array
-				current_element->data.data_element = malloc(sizeof(Json_Element) * 128);
-				
-				// set the current element to the array itself
-				current_element = current_element->data.data_element;
-				
-				// parse the array
-				if (parse_array(current_element, json_file, line_number)) {
-					return 6;
-				}
-				break;
-			
-			case '{':
-				// HANDLE OBJECT
-				
-				// set the current element type to object
-				current_element->type = JSON_OBJECT;
-				
-				// allocate memory for the object
-				current_element->data.data_element = malloc(sizeof(Json_Element) * 8);
-				
-				// set the current element to the object itself
-				current_element = current_element->data.data_element;
-				
-				// parse the object
-				if (parse_object(current_element, json_file, line_number)) {
-					return 6;
-				}
-				break;
-			
-			case '"':
-				// PARSE KEY AND HANDLE GENERIC ELEMENT
-				
-				// read and store the key
-				current_element->key = read_string(json_file, line_number);
-				if (strcmp(current_element->key, "\0") == 0) {
-					return 6;
-				}
-				//printf("found key: %s\n", current_element->key);
-				// remove whitespace
-				if (skip_whitespace(json_file, line_number)) {
-					fprintf(stderr, "ERROR: File ended unexpectedly\n\n");
-					return 1;
-				}
-				
-				// check for a :
-				current_character = peek_next_char(json_file);
-				if (expect_character(current_character, ':', *line_number)) {
-					return 5;
-				}
-				
-				getc(json_file);
-				
-				// remove whitespace
-				if (skip_whitespace(json_file, line_number)) {
-					fprintf(stderr, "ERROR: File ended unexpectedly\n\n");
-					return 1;
-				}
-				
-				current_character = peek_next_char(json_file);
-				current_element->type = get_data_type(current_character);
-				switch (current_element->type) {
-					case JSON_ARRAY:
-						// HANDLE ARRAY
-						
-						// set the current element type to array
-						current_element->type = JSON_ARRAY;
-						
-						// allocate memory for the array
-						current_element->data.data_element = malloc(sizeof(Json_Element) * 128);
-						
-						// set the current element to the array itself
-						current_element = current_element->data.data_element;
-						
-						// parse the array
-						if (parse_array(current_element, json_file, line_number)) {
-							return 6;
-						}
-						break;
-					
-					case JSON_OBJECT:
-						// HANDLE OBJECT
-						
-						// set the current element type to object
-						current_element->type = JSON_OBJECT;
-						
-						// allocate memory for the object
-						current_element->data.data_element = malloc(sizeof(Json_Element) * 128);
-						
-						// set the current element to the object itself
-						current_element = current_element->data.data_element;
-						
-						// parse the object
-						if (parse_object(current_element, json_file, line_number)) {
-							return 6;
-						}
-						break;
-					
-					case JSON_NUMBER:
-						
-						// HANDLE NUMBER
-						fscanf(json_file, "%lf", &current_element->data.data_number);
-						//printf("\tKey: %s\n\tValue: %f\n", current_element->key, current_element->data.data_number);
-						break;
-					
-					case JSON_STRING:
-						// HANDLE STRING
-						
-						current_element->data.data_string = read_string(json_file, line_number);
-						//printf("\tKey: %s\n\tValue: %s\n", current_element->key, current_element->data.data_string);
-						break;
-					
-					case JSON_BOOLEAN:
-						// HANDLE BOOLEAN
-						
-						temp = malloc(sizeof(char) * 5);
-						int i = 0;
-						while (!isspace(peek_next_char(json_file))) {
-							
-							// check for end of file
-							if (peek_next_char(json_file) == EOF) {
-								fprintf(stderr, "ERROR: File ended unexpectedly\n\n");
-								return 5;
-							}
-							
-							// append the next character
-							temp[i] = (char)getc(json_file);
-							i++;
-						}
-						if (strcmp(temp, "true") == 0) {
-							current_element->data.data_bool = TRUE;
-							//printf("\tkey: %s\n\tValue: true\n", current_element->key);
-						}
-						else if (strcmp(temp, "false") == 0) {
-							current_element->data.data_bool = FALSE;
-							//printf("\tkey: %s\n\tValue: false\n", current_element->key);
-						}
-						else {
-							fprintf(stderr, "ERROR: invalid character\n\n");
-							return 5;
-						}
-						
-						break;
-					
-					default:
-						fprintf(stderr, "ERROR: How did you get here?\n\n");
-						return 4;
-				}
-				// increment current element
-				current_element += 1;
-				break;
-			
-			case ',':
-				// remove the comma
-				getc(json_file);
-				break;
-			
-			default:
-				fprintf(stderr, "from parse_object\n");
-				fprintf(stderr,
-						"ERROR: Unexpected character at line %d\n\tExpected: '\"', '[', or '{'\n\tFound: %c\n\n",
-						*line_number, current_character);
-				return 2;
-		}
+		get_next_element(current_element, json_file, line_number, current_character);
+		print_current_element(current_element);
+		current_element++;
 		// remove whitespace
 		if (skip_whitespace(json_file, line_number)) {
 			fprintf(stderr, "from parse_object\n");
@@ -576,6 +135,144 @@ int parse_object(Json_Element *current_element, FILE* json_file, int *line_numbe
 		current_character = peek_next_char(json_file);
 	}
 	getc(json_file);
+	return 0;
+}
+
+/**
+ * GET NEXT ELEMENT
+ * @param current_element
+ * @param json_file
+ * @param line_number
+ * @param current_character
+ * @return Pointer to a Json_Element or NULL
+ * @description Reads a single element
+ */
+int get_next_element(Json_Element *current_element, FILE* json_file, int *line_number, int current_character) {
+	char* temp;
+	int i = 0;
+	switch (current_character) {
+		case '[':
+			// HANDLE ARRAY
+			
+			// parse the array
+			if (parse_array(current_element, json_file, line_number)) {
+				return 1;
+			}
+			break;
+		
+		case '{':
+			// HANDLE OBJECT
+			
+			// parse the object
+			if (parse_object(current_element, json_file, line_number)) {
+				return 1;
+			}
+			break;
+		
+		case '"':
+			// PARSE KEY AND HANDLE GENERIC ELEMENT
+			
+			// read and store the key
+			current_element->key = read_string(json_file, line_number);
+			if (strcmp(current_element->key, "\0") == 0) {
+				return 1;
+			}
+			
+			// remove whitespace
+			if (skip_whitespace(json_file, line_number)) {
+				fprintf(stderr, "ERROR: File ended unexpectedly\n\n");
+				return 1;
+			}
+			
+			// check for a :
+			current_character = getc(json_file);
+			if (expect_character(current_character, ':', *line_number)) {
+				return 1;
+			}
+			
+			// remove whitespace
+			if (skip_whitespace(json_file, line_number)) {
+				fprintf(stderr, "ERROR: File ended unexpectedly\n\n");
+				return 1;
+			}
+			
+			current_character = peek_next_char(json_file);
+			current_element->type = get_data_type(current_character);
+			switch (current_element->type) {
+				case JSON_ARRAY:
+					// HANDLE ARRAY
+					
+					// parse the array
+					if (parse_array(current_element, json_file, line_number)) {
+						return 1;
+					}
+					break;
+				
+				case JSON_OBJECT:
+					// HANDLE OBJECT
+					
+					// parse the object
+					if (parse_object(current_element, json_file, line_number)) {
+						return 1;
+					}
+					break;
+				
+				case JSON_NUMBER:
+					// HANDLE NUMBER
+					fscanf(json_file, "%lf", &current_element->data.data_number);
+					break;
+				
+				case JSON_STRING:
+					// HANDLE STRING
+					
+					current_element->data.data_string = read_string(json_file, line_number);
+					break;
+				
+				case JSON_BOOLEAN:
+					// HANDLE BOOLEAN
+					
+					
+					temp = malloc(sizeof(char) * 6);
+					while(!isspace(current_character) && current_character != EOF) {
+						current_character = getc(json_file);
+						temp[i] = (char)current_character;
+						current_character = peek_next_char(json_file);
+						i++;
+					}
+					if (temp[0] == 't') { temp[4] = '\0'; }
+					else if (temp[0] == 'f') {temp[5] = '\0'; }
+					
+					//temp = read_string(json_file, line_number);
+					if (strcmp(temp, "true") == 0) {
+						current_element->data.data_bool = TRUE;
+					}
+					if (strcmp(temp, "false") == 0) {
+						current_element->data.data_bool = FALSE;
+					}
+					else {
+						fprintf(stderr, "ERROR: invalid character\n\n");
+						return 1;
+					}
+					break;
+				
+				default:
+					fprintf(stderr, "ERROR: How did you get here?\n\n");
+					break;
+			}
+			break;
+		
+		case ',':
+			// remove the comma
+			getc(json_file);
+			break;
+		
+		default:
+			fprintf(stderr, "from get_next_element\n");
+			fprintf(stderr,
+					"ERROR: Unexpected character at line %d\n\tExpected: '\"', '[', or '{'\n\tFound: %c\n\n",
+					*line_number, current_character);
+			return 1;
+	}
 	return 0;
 }
 
@@ -709,5 +406,34 @@ char* read_string(FILE* json_file, int *line_number) {
 	// remove the ending "
 	getc(json_file);
 	return destination;
+}
+
+void print_current_element(Json_Element *current_element) {
+	switch(current_element->type) {
+		case 0:
+			printf("Object type: String\nData:\n");
+			printf("\tKey: %s\n\tValue: %s\n\n", current_element->key, current_element->data.data_string);
+			break;
+			
+		case 1:
+			printf("Object type: Number\nData:\n");
+			printf("\tKey: %s\n\tValue: %f\n\n", current_element->key, current_element->data.data_number);
+			break;
+		
+		case 2:
+			printf("Object type: Boolean\nData:\n");
+			printf("\tKey: %s\n\tValue: %d\n\n", current_element->key, current_element->data.data_bool);
+			break;
+		
+		case 3:
+			printf("Object type: Object\nData:\n");
+			printf("\tKey: %s\n\n", current_element->key);
+			break;
+		
+		case 4:
+			printf("Object type: Array\nData:\n");
+			printf("\tKey: %s\n\n", current_element->key);
+			break;
+	}
 }
 
