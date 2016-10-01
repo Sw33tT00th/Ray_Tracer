@@ -24,20 +24,11 @@ int main(int argc, char *argv[]) {
 		fclose(json_file);
 	}
 	
-	Json_Element *current_element;
+	Object *objects = malloc(sizeof(Object) * 128);
 	
-	current_element = root_element;
+	build_scene(objects, root_element);
 	
-	current_element = current_element->data.data_element;
 	
-	current_element = current_element->data.data_element;
-	print_current_element(current_element);
-	
-	current_element = current_element + 1;
-	print_current_element(current_element);
-	
-	current_element = current_element + 1;
-	print_current_element(current_element);
 	
 	fprintf(stderr, "\nProgram completed\n");
 	return 0;

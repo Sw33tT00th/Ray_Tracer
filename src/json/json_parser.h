@@ -16,11 +16,11 @@ typedef enum {
 } boolean;
 
 typedef enum {
-	JSON_STRING,	// 0
-	JSON_NUMBER,	// 1
-	JSON_BOOLEAN,	// 2
-	JSON_OBJECT,	// 3
-	JSON_ARRAY		// 4
+	JSON_STRING,	// 1
+	JSON_NUMBER,	// 2
+	JSON_BOOLEAN,	// 3
+	JSON_OBJECT,	// 4
+	JSON_ARRAY		// 5
 } json_element_type;
 
 typedef struct _Json_Element {
@@ -32,7 +32,7 @@ typedef struct _Json_Element {
 		boolean data_bool;
 		struct _Json_Element *data_element;
 	} data;
-	int count;
+	boolean has_data;
 } Json_Element;
 
 // FUNCTION SIGNATURES

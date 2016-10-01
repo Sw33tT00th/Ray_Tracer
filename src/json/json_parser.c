@@ -37,7 +37,9 @@ int parse_json(FILE* json_file, Json_Element *root_element) {
 	
 	while (current_character != EOF) {
 		get_next_element(current_element, json_file, &line_number, current_character);
+		current_element->has_data = TRUE;
 		current_element++;
+		current_element->has_data = FALSE;
 		// remove whitespace
 		// while the character is whitespace remove the next character and check
 		while (isspace(current_character)) {
@@ -82,10 +84,13 @@ int parse_array(Json_Element *current_element, FILE* json_file, int *line_number
 		fprintf(stderr, "ERROR: File ended unexpectedly\n\n");
 		return 1;
 	}
+	//printf("**********************\nFound [, parsing array\n");
 	int current_character = getc(json_file);
 	while (current_character != ']') {
 		get_next_element(current_element, json_file, line_number, current_character);
+		current_element->has_data = TRUE;
 		current_element++;
+		current_element->has_data = FALSE;
 		// remove whitespace
 		if (skip_whitespace(json_file, line_number)) {
 			fprintf(stderr, "from parse_array\n");
@@ -94,6 +99,7 @@ int parse_array(Json_Element *current_element, FILE* json_file, int *line_number
 		}
 		current_character = peek_next_char(json_file);
 	}
+	//printf("Found ], ending array\n**********************\n\n");
 	getc(json_file);
 	return 0;
 }
@@ -121,11 +127,13 @@ int parse_object(Json_Element *current_element, FILE* json_file, int *line_numbe
 		fprintf(stderr, "ERROR: File ended unexpectedly\n\n");
 		return 1;
 	}
-	
+	//printf("**********************\nFound {, parsing object\n");
 	int current_character = getc(json_file);
 	while (current_character != '}') {
 		get_next_element(current_element, json_file, line_number, current_character);
+		current_element->has_data = TRUE;
 		current_element++;
+		current_element->has_data = FALSE;
 		// remove whitespace
 		if (skip_whitespace(json_file, line_number)) {
 			fprintf(stderr, "from parse_object\n");
@@ -134,6 +142,7 @@ int parse_object(Json_Element *current_element, FILE* json_file, int *line_numbe
 		}
 		current_character = peek_next_char(json_file);
 	}
+	//printf("Found }, finished object\n**********************\n\n");
 	getc(json_file);
 	return 0;
 }
@@ -157,7 +166,7 @@ int get_next_element(Json_Element *current_element, FILE* json_file, int *line_n
 		}
 		current_character = getc(json_file);
 	}
-	
+	//printf("Current Character: %c\n", current_character);
 	int element_type = get_data_type(current_character);
 	
 	switch (element_type) {
@@ -272,6 +281,7 @@ int get_next_element(Json_Element *current_element, FILE* json_file, int *line_n
 		
 		case 1:
 			// HANDLE NUMBER
+			ungetc(current_character, json_file);
 			fscanf(json_file, "%lf", &current_element->data.data_number);
 			break;
 			
@@ -445,30 +455,34 @@ char* read_string(FILE* json_file, int *line_number) {
 
 void print_current_element(Json_Element *current_element) {
 	switch(current_element->type) {
-		case 0:
+		case JSON_STRING:
 			printf("Object type: String\nData:\n");
 			printf("\tKey: %s\n\tValue: %s\n\n", current_element->key, current_element->data.data_string);
 			break;
 			
-		case 1:
+		case JSON_NUMBER:
 			printf("Object type: Number\nData:\n");
 			printf("\tKey: %s\n\tValue: %f\n\n", current_element->key, current_element->data.data_number);
 			break;
 		
-		case 2:
+		case JSON_BOOLEAN:
 			printf("Object type: Boolean\nData:\n");
 			printf("\tKey: %s\n\tValue: %d\n\n", current_element->key, current_element->data.data_bool);
 			break;
 		
-		case 3:
+		case JSON_OBJECT:
 			printf("Object type: Object\nData:\n");
 			printf("\tKey: %s\n\n", current_element->key);
 			break;
 		
-		case 4:
+		case JSON_ARRAY:
 			printf("Object type: Array\nData:\n");
 			printf("\tKey: %s\n\n", current_element->key);
 			break;
+			
+		/*case NONE:
+			printf("Object is empty\n");
+			break;*/
 	}
 }
 
