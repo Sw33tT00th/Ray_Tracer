@@ -67,6 +67,7 @@ int parse_json(FILE* json_file, Json_Element *root_element) {
  * @description parse an array
  */
 int parse_array(Json_Element *current_element, FILE* json_file, int *line_number) {
+	getc(json_file);
 	// set the current element type to array
 	current_element->type = JSON_ARRAY;
 	
@@ -124,7 +125,6 @@ int parse_object(Json_Element *current_element, FILE* json_file, int *line_numbe
 	int current_character = getc(json_file);
 	while (current_character != '}') {
 		get_next_element(current_element, json_file, line_number, current_character);
-		print_current_element(current_element);
 		current_element++;
 		// remove whitespace
 		if (skip_whitespace(json_file, line_number)) {
@@ -150,8 +150,18 @@ int parse_object(Json_Element *current_element, FILE* json_file, int *line_numbe
 int get_next_element(Json_Element *current_element, FILE* json_file, int *line_number, int current_character) {
 	char* temp;
 	int i = 0;
-	switch (current_character) {
-		case '[':
+	if (current_character == ',') {
+		getc(json_file);
+		if (skip_whitespace(json_file, line_number)) {
+			return 1;
+		}
+		current_character = getc(json_file);
+	}
+	
+	int element_type = get_data_type(current_character);
+	
+	switch (element_type) {
+		case 4:
 			// HANDLE ARRAY
 			
 			// parse the array
@@ -160,7 +170,7 @@ int get_next_element(Json_Element *current_element, FILE* json_file, int *line_n
 			}
 			break;
 		
-		case '{':
+		case 3:
 			// HANDLE OBJECT
 			
 			// parse the object
@@ -169,7 +179,7 @@ int get_next_element(Json_Element *current_element, FILE* json_file, int *line_n
 			}
 			break;
 		
-		case '"':
+		case 0:
 			// PARSE KEY AND HANDLE GENERIC ELEMENT
 			
 			// read and store the key
@@ -231,7 +241,6 @@ int get_next_element(Json_Element *current_element, FILE* json_file, int *line_n
 				case JSON_BOOLEAN:
 					// HANDLE BOOLEAN
 					
-					
 					temp = malloc(sizeof(char) * 6);
 					while(!isspace(current_character) && current_character != EOF) {
 						current_character = getc(json_file);
@@ -261,15 +270,41 @@ int get_next_element(Json_Element *current_element, FILE* json_file, int *line_n
 			}
 			break;
 		
-		case ',':
-			// remove the comma
-			getc(json_file);
+		case 1:
+			// HANDLE NUMBER
+			fscanf(json_file, "%lf", &current_element->data.data_number);
+			break;
+			
+		case 2:
+			// HANDLE BOOLEAN
+			
+			temp = malloc(sizeof(char) * 6);
+			while(!isspace(current_character) && current_character != EOF) {
+				current_character = getc(json_file);
+				temp[i] = (char)current_character;
+				current_character = peek_next_char(json_file);
+				i++;
+			}
+			if (temp[0] == 't') { temp[4] = '\0'; }
+			else if (temp[0] == 'f') {temp[5] = '\0'; }
+			
+			//temp = read_string(json_file, line_number);
+			if (strcmp(temp, "true") == 0) {
+				current_element->data.data_bool = TRUE;
+			}
+			if (strcmp(temp, "false") == 0) {
+				current_element->data.data_bool = FALSE;
+			}
+			else {
+				fprintf(stderr, "ERROR: invalid character\n\n");
+				return 1;
+			}
 			break;
 		
 		default:
 			fprintf(stderr, "from get_next_element\n");
 			fprintf(stderr,
-					"ERROR: Unexpected character at line %d\n\tExpected: '\"', '[', or '{'\n\tFound: %c\n\n",
+					"ERROR: Unexpected character at line %d\n\tExpected: '\"', '[', '{', a number, or a boolean\n\tFound: %c\n\n",
 					*line_number, current_character);
 			return 1;
 	}
