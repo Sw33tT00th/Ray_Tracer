@@ -3,6 +3,7 @@
 #include "main.h"
 #include "ppm/helpers.h"
 #include "json/json_parser.h"
+#include "scene.h"
 
 int main(int argc, char *argv[]) {
 	Json_Element *root_element;
