@@ -25,9 +25,11 @@ int build_scene(Object *objects, Json_Element *root_element) {
 	
 	while(current_element->has_data == TRUE) {
 		objects[i] = get_object(current_element);
+		objects[i].has_data = TRUE;
 		current_element++;
 		i++;
 	}
+	objects[i].has_data = FALSE;
 	return 0;
 }
 

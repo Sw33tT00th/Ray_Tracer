@@ -36,6 +36,7 @@ typedef struct _object {
 		Plane plane;
 		Camera camera;
 	} data;
+	boolean has_data;
 } Object;
 
 int build_scene(Object *objects, Json_Element *root_element);

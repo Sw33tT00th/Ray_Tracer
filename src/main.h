@@ -5,9 +5,11 @@
 #ifndef RAY_TRACER_MAIN_H
 #define RAY_TRACER_MAIN_H
 
-#include "ppm/helpers.h"
-#include "ppm/header.h"
-#include "ppm/p6.h"
+#include "scene.h"
+
+double intersect_sphere(double *origin, double *direction, Object *current_object, double *color);
+double intersect_plane(double *origin, double *direction, Object *current_object, double *color);
+int validate_parameters(int argc, char *argv[]);
 
 #endif //RAY_TRACER_MAIN_H
 

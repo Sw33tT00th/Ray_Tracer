@@ -333,7 +333,8 @@ int get_data_type(int next_character) {
 	if (next_character == '"') { return JSON_STRING; }
 	
 	// check if the next character is a number
-	if (isdigit(next_character)) { return JSON_NUMBER; }
+	if (isdigit(next_character) || next_character == '-' || next_character == '.')
+	{ return JSON_NUMBER; }
 	
 	// check if the next character is t or f indicating a boolean
 	if (next_character == 't' || next_character == 'f')
