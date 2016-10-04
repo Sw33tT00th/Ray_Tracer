@@ -1,19 +1,25 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <ctype.h>
-#include <string.h>
 #include <math.h>
 #include "main.h"
-#include "ppm/helpers.h"
-#include "json/json_parser.h"
 #include "ppm/header.h"
 #include "ppm/p6.h"
 
-
+/**
+ * SQR
+ * @param v
+ * @return the square of the input double
+ */
 static inline double sqr(double v) {
 	return v*v;
 }
 
+/**
+ * NORMALIZE
+ * @param v
+ * @description normalizes a vector
+ */
 static inline void normalize(double* v) {
 	double len = sqrt(sqr(v[0]) + sqr(v[1]) + sqr(v[2]));
 	v[0] /= len;
@@ -21,23 +27,25 @@ static inline void normalize(double* v) {
 	v[2] /= len;
 }
 
+/**
+ * DOT PRODUCT
+ * @param vec1
+ * @param vec2
+ * @return returns a double value representing the dot product of the two
+ * provided doubles
+ */
 static inline double dot_product(double* vec1, double* vec2) {
 	return ((vec1[0] * vec2[0]) + (vec1[1] * vec2[1]) + (vec1[2] * vec2[2]));
 }
 
-
-static inline void subtract_vector(double* vec1, double* vec2, double* destination) {
-	destination[0] = vec1[0] - vec2[0];
-	destination[1] = vec1[1] - vec2[1];
-	destination[2] = vec2[2] - vec2[2];
-}
-
 int main(int argc, char *argv[]) {
+	// validate that the parameters seem to be correct
 	if (validate_parameters(argc, argv)) {
 		fprintf(stderr, "Closing Program\n");
 		return 1;
 	}
 	
+	// init the json storage structure
 	Json_Element *root_element;
 	FILE* json_file = fopen(argv[3], "r");
 	
@@ -60,10 +68,13 @@ int main(int argc, char *argv[]) {
 	// allocate memory for object array
 	Object *objects = malloc(sizeof(Object) * 128);
 	
+	// populate the objects array
 	build_scene(objects, root_element);
 	
+	// set a pointer for moving around the array
 	Object *current_object = objects;
 	Object camera;
+	// find the camera (take the first found)
 	while (current_object != NULL) {
 		if(current_object->type == OBJ_CAMERA) {
 			camera = *current_object;
@@ -92,17 +103,21 @@ int main(int argc, char *argv[]) {
 	out_header.magic_number[0] = 'P';
 	out_header.magic_number[1] = '6';
 	
-	
+	// define the origin
 	double center_x = 0;
 	double center_y = 0;
 	
+	// define the height and width of a single pixel in the viewplane
 	double pixel_height = height / M;
 	double pixel_width = width / N;
 	
+	// set up a counter for the pixel array
 	int pixel_counter = 0;
 	int y;
+	// itterate over the vertical space from bottom to top
 	for (y = M - 1; y >=0; y--) {
 		int x;
+		// itterate over the horizontal space from left to right
 		for (x = 0; x < N; x++) {
 			//direction = normalize(pixel - origin)
 			double direction[3];
@@ -111,23 +126,28 @@ int main(int argc, char *argv[]) {
 			direction[2] = 1;
 			normalize(direction);
 			
+			// set the default color to black
 			double color_to_write[3];
 			color_to_write[0] = 0;
 			color_to_write[1] = 0;
 			color_to_write[2] = 0;
 			
+			// set the current found color to black
 			double current_color[3];
 			current_color[0] = 0;
 			current_color[1] = 0;
 			current_color[2] = 0;
 			
-			
+			// define the best t as infinite
 			double best_t = INFINITY;
 			double t;
+			// set the current object pointer to the root of the objects array
 			current_object = objects;
-			int i = 0;
+			// make sure that the current object has data before checking it
 			while (current_object->has_data != FALSE) {
+				// start with t = 0
 				t = 0;
+				// check the object type and run the intersection function for that type
 				switch(current_object->type) {
 					case OBJ_SPHERE:
 						t = intersect_sphere(origin, direction, current_object, current_color);
@@ -141,24 +161,26 @@ int main(int argc, char *argv[]) {
 						// do nothing here
 						break;
 				}
-				i++;
-				//printf("Loop Number: (%d %d)\nObject Number: %d\n", x, y, i);
+				// check if a new closest object was found
 				if (t > 0 && t < best_t) {
 					best_t = t;
+					// set the color we want to write to the pixel to the found object's color
 					color_to_write[0] = current_color[0];
 					color_to_write[1] = current_color[1];
 					color_to_write[2] = current_color[2];
 				}
+				// increment the object pointer to look at the next object
 				current_object++;
 			}
-			
+			// write the color of the closest object to the current pixel in the array
 			image[pixel_counter].r = color_to_write[0];
 			image[pixel_counter].g = color_to_write[1];
 			image[pixel_counter].b = color_to_write[2];
+			// increment the pixel array
 			pixel_counter++;
 		}
 	}
-	
+	// write the P6 file
 	FILE* output_file = fopen(argv[4], "w");
 	write_header(output_file, "6\0", out_header);
 	write_p6(output_file, out_header, image);
@@ -167,6 +189,18 @@ int main(int argc, char *argv[]) {
 	return 0;
 }
 
+/**
+ * INTERSECT SPHERE
+ * @param origin
+ * @param direction
+ * @param current_object
+ * @param color
+ * @return a t value that represents the distance from the camera along the
+ * provided ray where the sphere was intersected
+ * @description checks to see if the provided ray intersects with the provided object and returns
+ * the closest distance from where the ray intersected the sphere. It also sets the color (RGB)
+ * in the provided double* (values range from 0-1)
+ */
 double intersect_sphere(double *origin, double *direction, Object *current_object, double *color) {
 	double t0, t;
 	double a = sqr(direction[0]) + sqr(direction[1]) + sqr(direction[2]);
@@ -195,7 +229,18 @@ double intersect_sphere(double *origin, double *direction, Object *current_objec
 	return -1;
 }
 
-
+/**
+ * INTERSECT PLANE
+ * @param origin
+ * @param direction
+ * @param current_object
+ * @param color
+ * @return a t value that represents the distance from the camera along the
+ * provided ray where the plane was intersected
+ * @description checks to see if the provided ray intersects with the provided object and returns
+ * the closest distance from where the ray intersected the plane. It also sets the color (RGB)
+ * in the provided double* (values range from 0-1)
+ */
 double intersect_plane(double *origin, double *direction, Object *current_object, double *color) {
 	double t;
 	double denominator = dot_product(current_object->data.plane.normal, direction);
@@ -208,6 +253,15 @@ double intersect_plane(double *origin, double *direction, Object *current_object
 	return t;
 }
 
+/**
+ * VALIDATE PARAMETERS
+ * @param argc
+ * @param argv
+ * @return 	0	-	all is well and parameters seem to be valid
+ * 			1	-	there aren't enough parameters or the first two aren't numbers
+ * @description checks the provided parameters to see if they are what this
+ * program requires
+ */
 int validate_parameters(int argc, char *argv[]) {
 	if (argc < 5) {
 		fprintf(stderr, "ERROR: Not enough parameters\n\n");
