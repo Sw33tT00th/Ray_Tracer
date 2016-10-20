@@ -214,7 +214,7 @@ int main(int argc, char *argv[]) {
 					double reflection_vector[3];
 					
 					double diffuse_color[3];
-					double specular_color[3] = {1, 1, 1};
+					double specular_color[3] = {0, 0, 0};
 					
 					switch (found_object->type) {
 						case OBJ_PLANE:
@@ -225,6 +225,7 @@ int main(int argc, char *argv[]) {
 						
 						case OBJ_SPHERE:
 							sub_vectors(object_light_origin, found_object->center, normal);
+							normalize(normal);
 							
 							copy_vector(found_object->data.sphere.color, diffuse_color);
 							copy_vector(found_object->data.sphere.specular_color, specular_color);
