@@ -10,7 +10,8 @@
 typedef enum {
 	OBJ_SPHERE,		// 0
 	OBJ_PLANE,		// 1
-	OBJ_CAMERA		// 2
+	OBJ_CAMERA,		// 2
+	OBJ_LIGHT		// 3
 } object_type;
 
 typedef struct {
@@ -28,6 +29,14 @@ typedef struct {
 	double normal[3];
 } Plane;
 
+typedef struct _light {
+	double color[3];
+	double radialA0;
+	double radialA1;
+	double radialA2;
+	double angularA0;
+} Light;
+
 typedef struct _object {
 	double center[3];
 	object_type type;
@@ -35,11 +44,12 @@ typedef struct _object {
 		Sphere sphere;
 		Plane plane;
 		Camera camera;
+		Light light;
 	} data;
 	boolean has_data;
 } Object;
 
-int build_scene(Object *objects, Json_Element *root_element);
+int build_scene(Object *objects, Object *lights, Json_Element *root_element);
 Object get_object(Json_Element *object_data);
 
 #endif //RAY_TRACER_SCENE_H
