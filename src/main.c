@@ -5,6 +5,7 @@
 #include "main.h"
 #include "ppm/header.h"
 #include "ppm/p6.h"
+#include "scene.h"
 
 /**
  * SQR
@@ -175,23 +176,12 @@ int main(int argc, char *argv[]) {
 			double object_light_origin[3];
 			scale_vector(best_t, direction, object_light_origin);
 			add_vectors(object_light_origin, origin, object_light_origin);
-			//printf("-----------------------------\n");
-			//printf("object_intersect_origin x: %f\n", object_light_origin[0]);
-			//printf("object_intersect_origin y: %f\n", object_light_origin[1]);
-			//printf("object_intersect_origin z: %f\n\n", object_light_origin[2]);
 			int k = 0;
 			while (lights[k].has_data == TRUE) {
-				//printf("\tLight Location x: %f\n", lights[k].center[0]);
-				//printf("\tLight Location y: %f\n", lights[k].center[1]);
-				//printf("\tLight Location z: %f\n\n", lights[k].center[2]);
 				double object_light_vector[3];
 				sub_vectors(lights[k].center, object_light_origin, object_light_vector);
-				//printf("\tObject_light_vector x: %f\n", object_light_vector[0]);
-				//printf("\tObject_light_vector y: %f\n", object_light_vector[1]);
-				//printf("\tObject_light_vector z: %f\n\n", object_light_vector[2]);
 				double distance_to_light = sqrt(sqr(object_light_vector[0]) + sqr(object_light_vector[1]) + sqr(object_light_vector[2]));
 				normalize(object_light_vector);
-				//printf("\tDistance to light: %f\n\n", distance_to_light);
 				double shadow_t = INFINITY;
 				boolean found_shadow_object = FALSE;
 				int l = 0;
@@ -202,16 +192,10 @@ int main(int argc, char *argv[]) {
 					switch(objects[l].type) {
 						case OBJ_SPHERE:
 							shadow_t = intersect_sphere(object_light_origin, object_light_vector, &objects[l]);
-							if(shadow_t != INFINITY) {
-								//printf("shadow intersect value: %f\n\n", shadow_t);
-							}
 							break;
 						
 						case OBJ_PLANE:
-							shadow_t = intersect_plane(object_light_origin, object_light_vector, &objects[l]);
-							if(shadow_t != INFINITY) {
-								//printf("shadow intersect value: %f\n\n", shadow_t);
-							}
+							shadow_t = intersect_plane(object_light_origin, object_light_vector, &objects[l]);\
 							break;
 						
 						default:
@@ -220,32 +204,65 @@ int main(int argc, char *argv[]) {
 					}
 					if(shadow_t != INFINITY && shadow_t < distance_to_light && shadow_t > 0) {
 						found_shadow_object = TRUE;
-						//printf("got here\n\n");
 						break;
 					}
 					l++;
 				}
 				if(found_shadow_object == FALSE) {
 					// write the color of the closest object to the current pixel in the array
+					double normal[3];
+					double reflection_vector[3];
+					
+					double diffuse_color[3];
+					double specular_color[3] = {1, 1, 1};
+					
 					switch (found_object->type) {
 						case OBJ_PLANE:
-							color_to_write[0] = found_object->data.plane.color[0];
-							color_to_write[1] = found_object->data.plane.color[1];
-							color_to_write[2] = found_object->data.plane.color[2];
+							copy_vector(found_object->data.plane.normal, normal);
+							
+							copy_vector(found_object->data.plane.color, diffuse_color);
 							break;
 						
 						case OBJ_SPHERE:
-							color_to_write[0] = found_object->data.sphere.color[0];
-							color_to_write[1] = found_object->data.sphere.color[1];
-							color_to_write[2] = found_object->data.sphere.color[2];
+							sub_vectors(object_light_origin, found_object->center, normal);
+							
+							copy_vector(found_object->data.sphere.color, diffuse_color);
+							copy_vector(found_object->data.sphere.specular_color, specular_color);
 							break;
 						
 						default:
 							break;
 					}
+					reflect_vector(object_light_vector, normal, reflection_vector);
+					
+					double diffuse_out[3] = {0, 0, 0};
+					double specular_out[3] = {0, 0, 0};
+					
+					normalize(reflection_vector);
+					
+					diffuse_reflection(normal, object_light_vector, lights[k].data.light.color, diffuse_color, diffuse_out);
+					specular_highlight(normal, object_light_vector, reflection_vector, direction, specular_color, lights[k].data.light.color, specular_out);
+					
+					double angular_out;
+					double radial_out;
+					
+					double reverse_direction[3];
+					scale_vector(-1, lights[k].data.light.direction, reverse_direction);
+					
+					angular_out = fang(lights[k].data.light.angularA0, lights[k].data.light.theta, reverse_direction, object_light_vector);
+					radial_out = frad(lights[k].data.light.radialA0, lights[k].data.light.radialA1, lights[k].data.light.radialA2, distance_to_light);
+					
+					color_to_write[0] = angular_out * radial_out * (diffuse_out[0] + specular_out[0]);
+					color_to_write[1] = angular_out * radial_out * (diffuse_out[1] + specular_out[1]);
+					color_to_write[2] = angular_out * radial_out * (diffuse_out[2] + specular_out[2]);
 				}
 				k++;
 			}
+			
+			color_to_write[0] = clamp(color_to_write[0], 0, 1);
+			color_to_write[1] = clamp(color_to_write[1], 0, 1);
+			color_to_write[2] = clamp(color_to_write[2], 0, 1);
+			
 			image[pixel_counter].r = color_to_write[0];
 			image[pixel_counter].g = color_to_write[1];
 			image[pixel_counter].b = color_to_write[2];
@@ -346,6 +363,67 @@ int validate_parameters(int argc, char *argv[]) {
 }
 
 
+void specular_highlight(double *normal, double *object_light_vector, double *reflected_vector, double *direction, double *specular_color, double *light_color, double *color) {
+	double scalar1, scalar2, scalar3 = 0;
+	
+	scalar1 = dot_product(normal, object_light_vector);
+	scalar2 = dot_product(direction, reflected_vector);
+	
+	
+	if ((scalar1 > 0) && (scalar2 > 0)) {
+		scalar3 = pow(scalar2, 20);
+		color[0] = scalar3 * specular_color[0] * light_color[0];
+		color[1] = scalar3 * specular_color[1] * light_color[1];
+		color[2] = scalar3 * specular_color[2] * light_color[2];
+	}
+	else {
+		color[0] = 0;
+		color[1] = 0;
+		color[2] = 0;
+	}
+}
+
+
+void diffuse_reflection(double *normal, double *object_light_vector, double *light_color, double *diffuse_color, double *color) {
+	double scalar = dot_product(normal, object_light_vector);
+	
+	if (scalar > 0) {
+		color[0] = scalar * (diffuse_color[0] * light_color[0]);
+		color[1] = scalar * (diffuse_color[1] * light_color[1]);
+		color[2] = scalar * (diffuse_color[2] * light_color[2]);
+	}
+	else {
+		color[0] = 0;
+		color[1] = 0;
+		color[2] = 0;
+	}
+}
+
+
+double fang(double angular_a0, double theta, double *direction, double *distance) {
+	if (theta == 0 && direction[0] == 0 && direction[1] == 0 && direction[2] == 0) {
+		return 1.0;
+	} else {
+		theta = (theta * M_PI) / 180;			// convert to radians
+		double scalar = dot_product(direction, distance);
+		if (scalar > cos(theta)) {
+			return pow(scalar, angular_a0);
+		} else {
+			return 0;
+		}
+	}
+}
+
+
+double frad(double radial_a0, double radial_a1, double radial_a2, double distance) {
+	if (distance < INFINITY) {
+		return (1 / (radial_a0 + (radial_a1 * distance) + (radial_a2 * pow(distance, 2))));
+	} else {
+		return 1.0;
+	}
+}
+
+
 void scale_vector(double scale, double *vector, double* dest) {
 	dest[0] = vector[0] * scale;
 	dest[1] = vector[1] * scale;
@@ -368,4 +446,24 @@ void sub_vectors(double *a, double *b, double *dest) {
 	dest[0] = a[0] - b[0];
 	dest[1] = a[1] - b[1];
 	dest[2] = a[2] - b[2];
+}
+
+void copy_vector(double *src, double *dest) {
+	dest[0] = src[0];
+	dest[1] = src[1];
+	dest[2] = src[2];
+}
+
+double clamp(double input, double min, double max) {
+	if (input > max) { return max; }
+	if (input < min) { return min; }
+	return input;
+}
+
+void reflect_vector(double *a, double *b, double *dest) {
+	double temp[3];
+	
+	double scalar = dot_product(a, b);
+	scale_vector(2 * scalar, b, temp);
+	sub_vectors(a, temp, dest);
 }

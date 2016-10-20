@@ -169,9 +169,12 @@ Object get_object(Json_Element *object_data) {
 	else if (strcmp(object_data->data.data_string, "light") == 0) {
 		to_return.type = OBJ_LIGHT;
 		object_data++;
+		to_return.data.light.direction[0] = 0;
+		to_return.data.light.direction[1] = 0;
+		to_return.data.light.direction[2] = 0;
 		// create a light
 		int i;
-		for (i = 0; i < 7; i++) {
+		for (i = 0; i < 8; i++) {
 			if(object_data->has_data == FALSE) {break;}
 			if (strcmp(object_data->key, "color") == 0 || strcmp(object_data->key, "diffuse_color") == 0) {
 				// set color
@@ -206,6 +209,14 @@ Object get_object(Json_Element *object_data) {
 			else if (strcmp(object_data->key, "theta") == 0) {
 				// set theta value
 				to_return.data.light.theta = object_data->data.data_number;
+			}
+			else if (strcmp(object_data->key, "direction") == 0) {
+				Json_Element *direction_array = object_data->data.data_element;
+				to_return.data.light.direction[0] = direction_array->data.data_number;
+				direction_array++;
+				to_return.data.light.direction[1] = direction_array->data.data_number;
+				direction_array++;
+				to_return.data.light.direction[2] = direction_array->data.data_number;
 			}
 			else {
 				fprintf(stderr, "ERROR: light can only have color, position, angular attenuation, radial attenuation, and theta\n");

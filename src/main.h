@@ -14,6 +14,13 @@ void scale_vector(double scale, double *vector, double *dest);
 void multiply_vectors(double *a, double *b, double *dest);
 void add_vectors(double *a, double *b, double *dest);
 void sub_vectors(double *a, double *b, double *dest);
+double clamp(double input, double min, double max);
+void specular_highlight(double *normal, double *object_light_vector, double *reflected_vector, double *direction, double *specular_color, double *light_color, double *color);
+double fang(double angular_a0, double theta, double *direction, double *distance);
+double frad(double radial_a0, double radial_a1, double radial_a2, double distance);
+void copy_vector(double *src, double *dest);
+void reflect_vector(double *a, double *b, double *dest);
+void diffuse_reflection(double *normal, double *object_light_vector, double *light_color, double *diffuse_color, double *color);
 
 #endif //RAY_TRACER_MAIN_H
 

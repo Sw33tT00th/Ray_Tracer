@@ -37,6 +37,7 @@ typedef struct _light {
 	double radialA2;
 	double angularA0;
 	double theta;
+	double direction[3];
 } Light;
 
 typedef struct _object {
