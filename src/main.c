@@ -135,6 +135,7 @@ int main(int argc, char *argv[]) {
 			color_to_write[2] = 0;
 			
 			Object *found_object = malloc(sizeof(Object) * 1);
+			found_object->has_data = FALSE;
 			
 			// define the best t as infinite
 			double best_t = INFINITY;
@@ -174,20 +175,23 @@ int main(int argc, char *argv[]) {
 			double object_light_origin[3];
 			scale_vector(best_t, direction, object_light_origin);
 			add_vectors(object_light_origin, origin, object_light_origin);
-			printf("-----------------------------\n");
-			printf("object_intersect_origin x: %f\n", object_light_origin[0]);
-			printf("object_intersect_origin y: %f\n", object_light_origin[1]);
-			printf("object_intersect_origin z: %f\n\n", object_light_origin[2]);
+			//printf("-----------------------------\n");
+			//printf("object_intersect_origin x: %f\n", object_light_origin[0]);
+			//printf("object_intersect_origin y: %f\n", object_light_origin[1]);
+			//printf("object_intersect_origin z: %f\n\n", object_light_origin[2]);
 			int k = 0;
 			while (lights[k].has_data == TRUE) {
+				//printf("\tLight Location x: %f\n", lights[k].center[0]);
+				//printf("\tLight Location y: %f\n", lights[k].center[1]);
+				//printf("\tLight Location z: %f\n\n", lights[k].center[2]);
 				double object_light_vector[3];
 				sub_vectors(lights[k].center, object_light_origin, object_light_vector);
-				printf("\tObject_light_vector x: %f\n", object_light_vector[0]);
-				printf("\tObject_light_vector y: %f\n", object_light_vector[1]);
-				printf("\tObject_light_vector z: %f\n\n", object_light_vector[2]);
+				//printf("\tObject_light_vector x: %f\n", object_light_vector[0]);
+				//printf("\tObject_light_vector y: %f\n", object_light_vector[1]);
+				//printf("\tObject_light_vector z: %f\n\n", object_light_vector[2]);
 				double distance_to_light = sqrt(sqr(object_light_vector[0]) + sqr(object_light_vector[1]) + sqr(object_light_vector[2]));
 				normalize(object_light_vector);
-				printf("\tDistance to light: %f\n\n", distance_to_light);
+				//printf("\tDistance to light: %f\n\n", distance_to_light);
 				double shadow_t = INFINITY;
 				boolean found_shadow_object = FALSE;
 				int l = 0;
@@ -199,24 +203,24 @@ int main(int argc, char *argv[]) {
 						case OBJ_SPHERE:
 							shadow_t = intersect_sphere(object_light_origin, object_light_vector, &objects[l]);
 							if(shadow_t != INFINITY) {
-								printf("shadow intersect value: %f\n\n", shadow_t);
+								//printf("shadow intersect value: %f\n\n", shadow_t);
 							}
 							break;
 						
 						case OBJ_PLANE:
 							shadow_t = intersect_plane(object_light_origin, object_light_vector, &objects[l]);
 							if(shadow_t != INFINITY) {
-								printf("shadow intersect value: %f\n\n", shadow_t);
+								//printf("shadow intersect value: %f\n\n", shadow_t);
 							}
 							break;
 						
 						default:
-							l++;
+							
 							break;
 					}
 					if(shadow_t != INFINITY && shadow_t < distance_to_light && shadow_t > 0) {
 						found_shadow_object = TRUE;
-						printf("got here\n");
+						//printf("got here\n\n");
 						break;
 					}
 					l++;
@@ -272,19 +276,21 @@ int main(int argc, char *argv[]) {
  */
 double intersect_sphere(double *origin, double *direction, Object *current_object) {
 	double t0, t;
-	double a = sqr(direction[0]) + sqr(direction[1]) + sqr(direction[2]);
-	double b = 2 * (direction[0] * (origin[0] - current_object->center[0]) + direction[1] * (origin[1] - current_object->center[1]) + direction[2] * (origin[2] - current_object->center[2]));
+	//double a = sqr(direction[0]) + sqr(direction[1]) + sqr(direction[2]);
+	double b = 2 * ((direction[0] * (origin[0] - current_object->center[0])) + (direction[1] * (origin[1] - current_object->center[1])) + (direction[2] * (origin[2] - current_object->center[2])));
 	double c = sqr(origin[0] - current_object->center[0]) + sqr(origin[1] - current_object->center[1]) + sqr(origin[2] - current_object->center[2]) - sqr(current_object->data.sphere.radius);
 	
-	double det = sqr(b) - 4 * a * c;
-	if (det < 0) return -1;
+	double desc = sqr(b) - 4 * c;
+	if (desc < 0) return -1;
 	
-	t0 = (-b - det) / (2 * a);
+	desc = sqrt(desc);
+	
+	t0 = (-b - desc) / (2);
 	if (t0 > 0) {
 		return t0;
 	}
 	
-	t = (-b + det) / (2 * a);
+	t = (-b + desc) / (2);
 	if (t > 0) {
 		return t;
 	}

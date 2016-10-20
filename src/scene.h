@@ -21,6 +21,7 @@ typedef struct {
 
 typedef struct {
 	double color[3];
+	double specular_color[3];
 	double radius;
 } Sphere;
 
@@ -35,6 +36,7 @@ typedef struct _light {
 	double radialA1;
 	double radialA2;
 	double angularA0;
+	double theta;
 } Light;
 
 typedef struct _object {

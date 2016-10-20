@@ -83,7 +83,8 @@ Object get_object(Json_Element *object_data) {
 		object_data++;
 		// create a sphere
 		int i;
-		for (i = 0; i < 3; i++) {
+		for (i = 0; i < 4; i++) {
+			if(object_data->has_data == FALSE) {break;}
 			if (strcmp(object_data->key, "color") == 0 || strcmp(object_data->key, "diffuse_color") == 0) {
 				// set color
 				Json_Element *color_array = object_data->data.data_element;
@@ -108,6 +109,12 @@ Object get_object(Json_Element *object_data) {
 			}
 			else if (strcmp(object_data->key, "specular_color") == 0) {
 				// set specular color
+				Json_Element *specular_color_array = object_data->data.data_element;
+				to_return.data.sphere.specular_color[0] = specular_color_array->data.data_number;
+				specular_color_array++;
+				to_return.data.sphere.specular_color[1] = specular_color_array->data.data_number;
+				specular_color_array++;
+				to_return.data.sphere.specular_color[2] = specular_color_array->data.data_number;
 			}
 			else {
 				fprintf(stderr, "ERROR: sphere can only have color, position, and radius\nfound: %s\n\n", object_data->key);
@@ -124,6 +131,7 @@ Object get_object(Json_Element *object_data) {
 		// create a plane
 		int i;
 		for (i = 0; i < 3; i++) {
+			if(object_data->has_data == FALSE) {break;}
 			if (strcmp(object_data->key, "color") == 0 || strcmp(object_data->key, "diffuse_color") == 0) {
 				// set color
 				Json_Element *color_array = object_data->data.data_element;
@@ -163,7 +171,8 @@ Object get_object(Json_Element *object_data) {
 		object_data++;
 		// create a light
 		int i;
-		for (i = 0; i < 6; i++) {
+		for (i = 0; i < 7; i++) {
+			if(object_data->has_data == FALSE) {break;}
 			if (strcmp(object_data->key, "color") == 0 || strcmp(object_data->key, "diffuse_color") == 0) {
 				// set color
 				Json_Element *color_array = object_data->data.data_element;
@@ -196,6 +205,7 @@ Object get_object(Json_Element *object_data) {
 			}
 			else if (strcmp(object_data->key, "theta") == 0) {
 				// set theta value
+				to_return.data.light.theta = object_data->data.data_number;
 			}
 			else {
 				fprintf(stderr, "ERROR: light can only have color, position, angular attenuation, radial attenuation, and theta\n");
