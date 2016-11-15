@@ -23,11 +23,15 @@ typedef struct {
 	double color[3];
 	double specular_color[3];
 	double radius;
+	double reflectivity;
+	double refractivity;
 } Sphere;
 
 typedef struct {
 	double color[3];
 	double normal[3];
+	double reflectivity;
+	double refractivity;
 } Plane;
 
 typedef struct _light {

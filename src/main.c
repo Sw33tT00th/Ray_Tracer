@@ -135,134 +135,7 @@ int main(int argc, char *argv[]) {
 			color_to_write[1] = 0;
 			color_to_write[2] = 0;
 			
-			Object *found_object = malloc(sizeof(Object) * 1);
-			found_object->has_data = FALSE;
-			
-			// define the best t as infinite
-			double best_t = INFINITY;
-			double t;
-			int current_index = 0;
-			int best_t_index = -1;
-			// set the current object pointer to the root of the objects array
-			current_object = objects;
-			// make sure that the current object has data before checking it
-			while (current_object->has_data != FALSE) {
-				// start with t = 0
-				t = 0;
-				// check the object type and run the intersection function for that type
-				switch(current_object->type) {
-					case OBJ_SPHERE:
-						t = intersect_sphere(origin, direction, current_object);
-						break;
-					
-					case OBJ_PLANE:
-						t = intersect_plane(origin, direction, current_object);
-						break;
-					
-					default:
-						break;
-				}
-				// check if a new closest object was found
-				if (t > 0 && t < best_t) {
-					best_t = t;
-					found_object = current_object;
-					best_t_index = current_index;
-				}
-				// increment the object pointer to look at the next object
-				current_object++;
-				current_index++;
-			}
-			// get origin of object-light vector
-			double object_light_origin[3];
-			scale_vector(best_t, direction, object_light_origin);
-			add_vectors(object_light_origin, origin, object_light_origin);
-			int k = 0;
-			while (lights[k].has_data == TRUE) {
-				double object_light_vector[3];
-				sub_vectors(lights[k].center, object_light_origin, object_light_vector);
-				double distance_to_light = sqrt(sqr(object_light_vector[0]) + sqr(object_light_vector[1]) + sqr(object_light_vector[2]));
-				normalize(object_light_vector);
-				double shadow_t = INFINITY;
-				boolean found_shadow_object = FALSE;
-				int l = 0;
-				while (objects[l].has_data == TRUE) {
-					
-					if (l == best_t_index) { l++; continue; }
-					// check the object type and run the intersection function for that type
-					switch(objects[l].type) {
-						case OBJ_SPHERE:
-							shadow_t = intersect_sphere(object_light_origin, object_light_vector, &objects[l]);
-							break;
-						
-						case OBJ_PLANE:
-							shadow_t = intersect_plane(object_light_origin, object_light_vector, &objects[l]);\
-							break;
-						
-						default:
-							
-							break;
-					}
-					if(shadow_t != INFINITY && shadow_t < distance_to_light && shadow_t > 0) {
-						found_shadow_object = TRUE;
-						break;
-					}
-					l++;
-				}
-				if(found_shadow_object == FALSE) {
-					// write the color of the closest object to the current pixel in the array
-					double normal[3];
-					double reflection_vector[3];
-					
-					double diffuse_color[3];
-					double specular_color[3] = {0, 0, 0};
-					
-					switch (found_object->type) {
-						case OBJ_PLANE:
-							copy_vector(found_object->data.plane.normal, normal);
-							
-							copy_vector(found_object->data.plane.color, diffuse_color);
-							break;
-						
-						case OBJ_SPHERE:
-							sub_vectors(object_light_origin, found_object->center, normal);
-							normalize(normal);
-							
-							copy_vector(found_object->data.sphere.color, diffuse_color);
-							copy_vector(found_object->data.sphere.specular_color, specular_color);
-							break;
-						
-						default:
-							break;
-					}
-					reflect_vector(object_light_vector, normal, reflection_vector);
-					
-					double diffuse_out[3] = {0, 0, 0};
-					double specular_out[3] = {0, 0, 0};
-					
-					normalize(reflection_vector);
-					
-					diffuse_reflection(normal, object_light_vector, lights[k].data.light.color, diffuse_color, diffuse_out);
-					specular_highlight(normal, object_light_vector, reflection_vector, direction, specular_color, lights[k].data.light.color, specular_out);
-					
-					double angular_out;
-					double radial_out;
-					
-					double reverse_direction[3];
-					scale_vector(-1, lights[k].data.light.direction, reverse_direction);
-					
-					angular_out = fang(lights[k].data.light.angularA0, lights[k].data.light.theta, reverse_direction, object_light_vector);
-					radial_out = frad(lights[k].data.light.radialA0, lights[k].data.light.radialA1, lights[k].data.light.radialA2, distance_to_light);
-					
-					color_to_write[0] = angular_out * radial_out * (diffuse_out[0] + specular_out[0]);
-					color_to_write[1] = angular_out * radial_out * (diffuse_out[1] + specular_out[1]);
-					color_to_write[2] = angular_out * radial_out * (diffuse_out[2] + specular_out[2]);
-				}
-				k++;
-			}
-			
-			color_to_write[0] = clamp(color_to_write[0], 0, 1);
-			color_to_write[1] = clamp(color_to_write[1], 0, 1);
-			color_to_write[2] = clamp(color_to_write[2], 0, 1);
+			shoot(objects, origin, direction, lights, color_to_write, 7);
 			
 			image[pixel_counter].r = color_to_write[0];
 			image[pixel_counter].g = color_to_write[1];
@@ -278,6 +151,175 @@ int main(int argc, char *argv[]) {
 	
 	fprintf(stderr, "\nProgram completed\n");
 	return 0;
+}
+
+void shoot(Object *objects, double *origin, double *direction, Object *lights, double *color_to_write, int reflection_index) {
+	Object *found_object = malloc(sizeof(Object) * 1);
+	found_object->has_data = FALSE;
+	
+	// define the best t as infinite
+	double best_t = INFINITY;
+	double t;
+	int current_index = 0;
+	int best_t_index = -1;
+	// set the current object pointer to the root of the objects array
+	Object *current_object = objects;
+	// make sure that the current object has data before checking it
+	while (current_object->has_data != FALSE) {
+		// start with t = 0
+		t = 0;
+		// check the object type and run the intersection function for that type
+		switch(current_object->type) {
+			case OBJ_SPHERE:
+				t = intersect_sphere(origin, direction, current_object);
+				break;
+			
+			case OBJ_PLANE:
+				t = intersect_plane(origin, direction, current_object);
+				break;
+			
+			default:
+				break;
+		}
+		// check if a new closest object was found
+		if (t > 0 && t < best_t) {
+			best_t = t;
+			found_object = current_object;
+			best_t_index = current_index;
+		}
+		// increment the object pointer to look at the next object
+		current_object++;
+		current_index++;
+	}
+	// get origin of object-light vector
+	double object_light_origin[3];
+	scale_vector(best_t, direction, object_light_origin);
+	add_vectors(object_light_origin, origin, object_light_origin);
+	int k = 0;
+	while (lights[k].has_data == TRUE) {
+		double object_light_vector[3];
+		sub_vectors(lights[k].center, object_light_origin, object_light_vector);
+		double distance_to_light = sqrt(sqr(object_light_vector[0]) + sqr(object_light_vector[1]) + sqr(object_light_vector[2]));
+		normalize(object_light_vector);
+		double shadow_t = INFINITY;
+		boolean found_shadow_object = FALSE;
+		int l = 0;
+		while (objects[l].has_data == TRUE) {
+			
+			if (l == best_t_index) { l++; continue; }
+			// check the object type and run the intersection function for that type
+			switch(objects[l].type) {
+				case OBJ_SPHERE:
+					shadow_t = intersect_sphere(object_light_origin, object_light_vector, &objects[l]);
+					break;
+				
+				case OBJ_PLANE:
+					shadow_t = intersect_plane(object_light_origin, object_light_vector, &objects[l]);\
+							break;
+				
+				default:
+					
+					break;
+			}
+			if(shadow_t != INFINITY && shadow_t < distance_to_light && shadow_t > 0) {
+				found_shadow_object = TRUE;
+				break;
+			}
+			l++;
+		}
+		if(found_shadow_object == FALSE) {
+			// write the color of the closest object to the current pixel in the array
+			double normal[3];
+			double reflection_vector[3];
+			
+			double diffuse_color[3];
+			double specular_color[3] = {0, 0, 0};
+			
+			switch (found_object->type) {
+				case OBJ_PLANE:
+					copy_vector(found_object->data.plane.normal, normal);
+					
+					copy_vector(found_object->data.plane.color, diffuse_color);
+					break;
+				
+				case OBJ_SPHERE:
+					sub_vectors(object_light_origin, found_object->center, normal);
+					normalize(normal);
+					
+					copy_vector(found_object->data.sphere.color, diffuse_color);
+					copy_vector(found_object->data.sphere.specular_color, specular_color);
+					break;
+				
+				default:
+					break;
+			}
+			reflect_vector(object_light_vector, normal, reflection_vector);
+			
+			double diffuse_out[3] = {0, 0, 0};
+			double specular_out[3] = {0, 0, 0};
+			
+			normalize(reflection_vector);
+			
+			diffuse_reflection(normal, object_light_vector, lights[k].data.light.color, diffuse_color, diffuse_out);
+			specular_highlight(normal, object_light_vector, reflection_vector, direction, specular_color, lights[k].data.light.color, specular_out);
+			
+			double angular_out;
+			double radial_out;
+			
+			double reverse_direction[3];
+			scale_vector(-1, lights[k].data.light.direction, reverse_direction);
+			
+			angular_out = fang(lights[k].data.light.angularA0, lights[k].data.light.theta, reverse_direction, object_light_vector);
+			radial_out = frad(lights[k].data.light.radialA0, lights[k].data.light.radialA1, lights[k].data.light.radialA2, distance_to_light);
+			
+			color_to_write[0] = angular_out * radial_out * (diffuse_out[0] + specular_out[0]);
+			color_to_write[1] = angular_out * radial_out * (diffuse_out[1] + specular_out[1]);
+			color_to_write[2] = angular_out * radial_out * (diffuse_out[2] + specular_out[2]);
+		}
+		k++;
+	}
+	color_to_write[0] = clamp(color_to_write[0], 0, 1);
+	color_to_write[1] = clamp(color_to_write[1], 0, 1);
+	color_to_write[2] = clamp(color_to_write[2], 0, 1);
+	// decrement the reflection index
+	reflection_index--;
+	// get the normal of the found object's surface
+	double normal[3];
+	if (found_object->type == OBJ_SPHERE) {
+		sub_vectors(object_light_origin, found_object->center, normal);
+	}
+	else if (found_object->type == OBJ_PLANE) {
+		copy_vector(found_object->data.plane.normal, normal);
+	}
+	// get a new direction for the reflected vector
+	double new_direction[3];
+	reflect_vector(direction, normal, new_direction);
+	// reverse the vector
+	scale_vector(-1, new_direction, new_direction);
+	// normalize the vector
+	normalize(new_direction);
+	// get a reflected color
+	double reflected_color[3];
+	if(reflection_index >= 1) {
+		shoot(objects, object_light_origin, new_direction, lights, reflected_color, reflection_index);
+	}
+	// if the reflected color is black change nothing
+	if (reflected_color[0] == 0 && reflected_color[1] == 0 && reflected_color[1] == 0) {
+		return;
+	}
+	// combine the reflected color with the object's color based on reflectivity
+	double current_color[3];
+	copy_vector(color_to_write, current_color);
+	if (found_object->type == OBJ_SPHERE) {
+		scale_vector(1 - current_object->data.sphere.reflectivity, current_color, current_color);
+		scale_vector(current_object->data.sphere.reflectivity, reflected_color, reflected_color);
+		add_vectors(current_color, reflected_color, color_to_write);
+	}
+	else if (found_object->type == OBJ_PLANE) {
+		scale_vector(1 - current_object->data.plane.reflectivity, current_color, current_color);
+		scale_vector(current_object->data.plane.reflectivity, reflected_color, reflected_color);
+		add_vectors(current_color, reflected_color, color_to_write);
+	}
 }
 
 /**

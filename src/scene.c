@@ -4,6 +4,7 @@
 
 #include <string.h>
 #include "scene.h"
+#include "json/json_parser.h"
 
 /**
  * BUILD SCENE
@@ -80,11 +81,12 @@ Object get_object(Json_Element *object_data) {
 	}
 	else if (strcmp(object_data->data.data_string, "sphere") == 0) {
 		to_return.type = OBJ_SPHERE;
+		to_return.data.sphere.reflectivity = 0;
+		to_return.data.sphere.refractivity = 0;
 		object_data++;
 		// create a sphere
 		int i;
-		for (i = 0; i < 4; i++) {
-			if(object_data->has_data == FALSE) {break;}
+		while (object_data->has_data == TRUE) {
 			if (strcmp(object_data->key, "color") == 0 || strcmp(object_data->key, "diffuse_color") == 0) {
 				// set color
 				Json_Element *color_array = object_data->data.data_element;
@@ -116,6 +118,14 @@ Object get_object(Json_Element *object_data) {
 				specular_color_array++;
 				to_return.data.sphere.specular_color[2] = specular_color_array->data.data_number;
 			}
+			else if (strcmp(object_data->key, "reflectivity") == 0) {
+				// set reflectivity
+				to_return.data.sphere.reflectivity = object_data->data.data_number;
+			}
+			else if (strcmp(object_data->key, "refractivity") == 0) {
+				// set reflectivity
+				to_return.data.sphere.refractivity = object_data->data.data_number;
+			}
 			else {
 				fprintf(stderr, "ERROR: sphere can only have color, position, and radius\nfound: %s\n\n", object_data->key);
 				
@@ -127,11 +137,11 @@ Object get_object(Json_Element *object_data) {
 	}
 	else if (strcmp(object_data->data.data_string, "plane") == 0) {
 		to_return.type = OBJ_PLANE;
+		to_return.data.plane.reflectivity = 0;
+		to_return.data.plane.refractivity = 0;
 		object_data++;
 		// create a plane
-		int i;
-		for (i = 0; i < 3; i++) {
-			if(object_data->has_data == FALSE) {break;}
+		while (object_data->has_data == TRUE) {
 			if (strcmp(object_data->key, "color") == 0 || strcmp(object_data->key, "diffuse_color") == 0) {
 				// set color
 				Json_Element *color_array = object_data->data.data_element;
@@ -159,6 +169,14 @@ Object get_object(Json_Element *object_data) {
 				normal_vector++;
 				to_return.data.plane.normal[2] = normal_vector->data.data_number;
 			}
+			else if (strcmp(object_data->key, "reflectivity") == 0) {
+				// set reflectivity
+				to_return.data.plane.reflectivity = object_data->data.data_number;
+			}
+			else if (strcmp(object_data->key, "refractivity") == 0) {
+				// set reflectivity
+				to_return.data.plane.refractivity = object_data->data.data_number;
+			}
 			else {
 				fprintf(stderr, "ERROR: plane can only have color, position, and normal\n\n");
 				exit(1);
@@ -174,8 +192,7 @@ Object get_object(Json_Element *object_data) {
 		to_return.data.light.direction[2] = 0;
 		// create a light
 		int i;
-		for (i = 0; i < 8; i++) {
-			if(object_data->has_data == FALSE) {break;}
+		while (object_data->has_data == TRUE) {
 			if (strcmp(object_data->key, "color") == 0 || strcmp(object_data->key, "diffuse_color") == 0) {
 				// set color
 				Json_Element *color_array = object_data->data.data_element;
